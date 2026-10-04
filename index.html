@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乾電池チェッカー・残量測り分けシミュレーター</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #fff;
+            color: var(--text-main);
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .battery-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 10px;
+        }
+
+        .battery-btn {
+            border: 2px solid var(--border-color);
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .battery-btn input {
+            display: none;
+        }
+
+        .battery-btn.active {
+            border-color: var(--primary);
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        /* 結果表示エリア */
+        .result-container {
+            display: none;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--bg-color);
+            padding-bottom: 15px;
+        }
+
+        .gauge-wrapper {
+            position: relative;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .recommendation-box {
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            padding: 16px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin-top: 20px;
+        }
+
+        .recommendation-box h3 {
+            font-size: 1rem;
+            margin-bottom: 6px;
+            color: var(--text-main);
+        }
+
+        .recommendation-box p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .history-section {
+            margin-top: 30px;
+        }
+
+        .history-list {
+            list-style: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--bg-color);
+            font-size: 0.9rem;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .clear-history {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-decoration: underline;
+            margin-top: 10px;
+        }
+
+        /* SVG Icon styles */
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .card {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>
+            <!-- 電池アイコンSVG -->
+            <svg class="icon" viewBox="0 0 24 24"><path d="M16 4h-2V2h-4v2H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H8V6h8v14zM10 8h4v2h-4V8z"/></svg>
+            乾電池チェッカー
+        </h1>
+        <p>リモコンや時計で動かなくなった電池の残量を予測し、再利用先を提案します</p>
+    </header>
+
+    <div class="card">
+        <form id="battery-form">
+            <div class="form-group">
+                <label>電池の種類</label>
+                <div class="battery-selector" id="type-selector">
+                    <label class="battery-btn active">
+                        <input type="radio" name="batteryType" value="alkaline" checked> 単3/単4<br><small style="font-weight:normal;">アルカリ (1.5V)</small>
+                    </label>
+                    <label class="battery-btn">
+                        <input type="radio" name="batteryType" value="manganese"> 単3/単4<br><small style="font-weight:normal;">マンガン (1.5V)</small>
+                    </label>
+                    <label class="battery-btn">
+                        <input type="radio" name="batteryType" value="eneloop"> 充電池<br><small style="font-weight:normal;">ニッケル水素 (1.2V)</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="voltage-input">電圧の測定値 (V)</label>
+                <input type="number" id="voltage-input" step="0.01" min="0.2" max="1.8" placeholder="例: 1.25" required>
+                <small style="color: var(--text-muted); display: block; margin-top: 5px;">※テスターや簡易チェッカーの値（例: 1.25V）を入力してください</small>
+            </div>
+
+            <button type="submit" class="btn-primary">残量をシミュレーションする</button>
+        </form>
+    </div>
+
+    <!-- 結果表示 -->
+    <div class="card result-container" id="result-card">
+        <div class="result-header">
+            <div>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">推定残量</span>
+                <div id="percentage-display" style="font-size: 2rem; font-weight: bold;">0%</div>
+            </div>
+            <div>
+                <span id="status-badge" class="status-badge">判定中</span>
+            </div>
+        </div>
+
+        <div class="gauge-wrapper">
+            <div id="gauge-fill" class="gauge-fill"></div>
+        </div>
+
+        <div class="recommendation-box">
+            <h3 id="rec-title">おすすめの再利用先</h3>
+            <p id="rec-desc">ここに提案が表示されます。</p>
+        </div>
+    </div>
+
+    <!-- 履歴セクション -->
+    <div class="card history-section" id="history-section" style="display: none;">
+        <h3 style="font-size: 1rem; margin-bottom: 10px;">測定履歴</h3>
+        <ul id="history-list" class="history-list"></ul>
+        <button class="clear-history" id="clear-history-btn">履歴をクリア</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('battery-form');
+        const typeSelector = document.getElementById('type-selector');
+        const voltageInput = document.getElementById('voltage-input');
+        const resultCard = document.getElementById('result-card');
+        const percentageDisplay = document.getElementById('percentage-display');
+        const statusBadge = document.getElementById('status-badge');
+        const gaugeFill = document.getElementById('gauge-fill');
+        const recTitle = document.getElementById('rec-title');
+        const recDesc = document.getElementById('rec-desc');
+        const historySection = document.getElementById('history-section');
+        const historyList = document.getElementById('history-list');
+        const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+        // バッテリー選択ボタンのUI制御
+        const batteryBtns = typeSelector.querySelectorAll('.battery-btn');
+        batteryBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                batteryBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                btn.querySelector('input').checked = true;
+            });
+        });
+
+        // LocalStorageから履歴を読み込み
+        let history = JSON.parse(localStorage.getItem('battery_history') || '[]');
+        renderHistory();
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const type = form.querySelector('input[name="batteryType"]:checked').value;
+            const voltage = parseFloat(voltageInput.value);
+
+            if (isNaN(voltage)) return;
+
+            const result = calculateBatteryStatus(type, voltage);
+            displayResult(result, type, voltage);
+            saveHistory(type, voltage, result.percentage);
+        });
+
+        clearHistoryBtn.addEventListener('click', () => {
+            history = [];
+            localStorage.removeItem('battery_history');
+            renderHistory();
+        });
+
+        function calculateBatteryStatus(type, v) {
+            let maxV = 1.5;
+            let minV = 0.9; // 機器が全く動かなくなる電圧の目安
+
+            if (type === 'eneloop') {
+                maxV = 1.25;
+                minV = 1.0;
+            } else if (type === 'manganese') {
+                maxV = 1.5;
+                minV = 0.8; // マンガンは低電圧までダラダラ下がる
+            }
+
+            // 単純な線形近似による残量パーセンテージ算出（実用的なカーブを考慮）
+            let percentage = ((v - minV) / (maxV - minV)) * 100;
+            percentage = Math.max(0, Math.min(100, Math.round(percentage)));
+
+            // 特殊補正（マンガンは低下が早い等）
+            if (v >= maxV) percentage = 100;
+
+            let status = '';
+            let color = '';
+            let recommendation = { title: '', desc: '' };
+
+            if (v >= 1.3 && type !== 'eneloop' || v >= 1.2 && type === 'eneloop') {
+                status = 'まだまだ元気';
+                color = 'var(--success)';
+                recommendation = {
+                    title: '🎮 デジタルカメラ、携帯ゲーム機、電動おもちゃ',
+                    desc: '大きな電力が必要な機器でも十分に動作します。リモコンで動かなくなった場合でも、消費電力が低い機器なら主役に昇格できます。'
+                };
+            } else if (v >= 1.15 && type !== 'eneloop' || v >= 1.1 && type === 'eneloop') {
+                status = '中程度の残量';
+                color = 'var(--warning)';
+                recommendation = {
+                    title: '⏰ 置き時計、掛け時計、TV・エアコンのリモコン',
+                    desc: '時計やリモコンなど、消費電力が非常に少ない機器であれば、まだ長期間使用可能です。「時計専用」にするのが最もおすすめです。'
+                };
+            } else if (v >= 1.0) {
+                status = '残りわずか';
+                color = '#f97316'; // オレンジ
+                recommendation = {
+                    title: '🔦 LEDライト（非常用）、シンプルな電子体温計',
+                    desc: '突然切れても困らない小型LEDライトや、短時間しか使わない機器へ。これが最後の使い道になります。'
+                };
+            } else {
+                status = '寿命切れ（要廃棄）';
+                color = 'var(--danger)';
+                recommendation = {
+                    title: '♻️ リサイクルへ出しましょう',
+                    desc: 'これ以上動かすことは困難です。自治体のルールに従って正しく廃棄（またはリサイクル）してください。'
+                };
+            }
+
+            return { percentage, status, color, recommendation };
+        }
+
+        function displayResult(result, type, voltage) {
+            resultCard.style.display = 'block';
+            percentageDisplay.textContent = result.percentage + '%';
+            percentageDisplay.style.color = result.color;
+            
+            statusBadge.textContent = result.status;
+            statusBadge.style.backgroundColor = result.color;
+            statusBadge.style.color = '#ffffff';
+
+            gaugeFill.style.width = '0%';
+            setTimeout(() => {
+                gaugeFill.style.width = result.percentage + '%';
+                gaugeFill.style.backgroundColor = result.color;
+            }, 50);
+
+            recTitle.textContent = result.recommendation.title;
+            recDesc.textContent = result.recommendation.desc;
+
+            // スムーズスクロール
+            resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function saveHistory(type, voltage, percentage) {
+            const typeNames = { alkaline: 'アルカリ(1.5V)', manganese: 'マンガン(1.5V)', eneloop: '充電池(1.2V)' };
+            const item = {
+                date: new Date().toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                text: `${typeNames[type]} / ${voltage}V (${percentage}%)`
+            };
+
+            history.unshift(item);
+            if (history.length > 10) history.pop(); // 最大10件
+            localStorage.setItem('battery_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (history.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+
+            historySection.style.display = 'block';
+            historyList.innerHTML = '';
+            history.forEach(h => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `<span>${h.text}</span><small style="color:var(--text-muted);">${h.date}</small>`;
+                historyList.appendChild(li);
+            });
+        }
+    });
+</script>
+
+</body>
+</html>
